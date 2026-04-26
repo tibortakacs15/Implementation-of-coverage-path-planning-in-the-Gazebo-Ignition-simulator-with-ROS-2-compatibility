@@ -1,0 +1,34 @@
+# ===== ROS2 build artifacts =====
+build/
+install/
+log/
+src/**/build/
+src/**/install/
+src/**/log/
+
+# ===== Colcon =====
+log/
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# ===== VS Code =====
+.vscode/
+
+# ===== Linux =====
+*~
+*.swp
+
+# ===== Maps / temp files =====
+*.tmp
+
+# ===== Gazebo / Ignition cache =====
+~/.ignition/
+~/.gazebo/
+
+# ===== ROS2 generated =====
+*.bag
