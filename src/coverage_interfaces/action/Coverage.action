@@ -1,6 +1,7 @@
 string map_path
 int32 robot_size
 float32 threshold
+float64 angle_degrees
 ---
 float32[] path
 ---

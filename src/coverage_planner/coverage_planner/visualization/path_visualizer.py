@@ -2,6 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 
 from nav_msgs.msg import Path, OccupancyGrid
 from geometry_msgs.msg import PoseStamped, Point
@@ -10,6 +11,8 @@ from visualization_msgs.msg import Marker
 from rclpy.action import ActionClient
 from coverage_interfaces.action import Coverage
 
+from action_msgs.msg import GoalStatus
+
 
 class PathVisualizer(Node):
     def __init__(self):
@@ -17,23 +20,40 @@ class PathVisualizer(Node):
 
         # Parameters
         self.declare_parameter("map_name", "my_room.png")
-        self.declare_parameter("robot_size", 14)
+        self.declare_parameter("robot_size", 11)
         self.declare_parameter("threshold", 0.55)
+        self.declare_parameter("angle_degrees", 0.0)
 
         self.map_name = self.get_parameter("map_name").value
         self.robot_size = self.get_parameter("robot_size").value
         self.threshold = self.get_parameter("threshold").value
+        self.angle_degrees = self.get_parameter("angle_degrees").value
 
         # Publishers
-        self.path_pub = self.create_publisher(Path, '/coverage_path_viz', 10)
+        path_qos = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL
+        )
+
+        self.path_pub = self.create_publisher(
+            Path,
+            '/coverage_path_viz',
+            path_qos
+        )
         self.marker_pub = self.create_publisher(Marker, '/coverage_marker', 10)
 
-        # Map subscriber
+        map_qos = QoSProfile(
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL
+        )
+
         self.map_sub = self.create_subscription(
             OccupancyGrid,
             '/map',
             self.map_callback,
-            10
+            map_qos
         )
 
         # Timer
@@ -53,9 +73,16 @@ class PathVisualizer(Node):
 
         self.get_logger().info(f"Map: {self.map_name}, robot: {self.robot_size}, thr: {self.threshold}")
 
-        self.send_goal()
-    
+        #self.send_goal()
+
+        self.goal_timer = self.create_timer(
+            0.5,
+            self.try_send_goal
+        )
+
     # MAP 
+
+    # Store the map dimensions, resolution, and origin position
     def map_callback(self, msg):
         self.map_resolution = msg.info.resolution
         self.map_width = msg.info.width
@@ -69,6 +96,8 @@ class PathVisualizer(Node):
         )
 
     # PUBLISH 
+
+    # Convert pixel coordinates to meters and publish the path and marker
     def publish_path(self):
 
         if not self.points:
@@ -88,8 +117,8 @@ class PathVisualizer(Node):
             pose = PoseStamped()
             pose.header.frame_id = "map"
 
-            world_x = x * self.map_resolution + self.map_origin_x
-            world_y = (height - y) * self.map_resolution + self.map_origin_y
+            world_x = (x + 0.5) * self.map_resolution + self.map_origin_x
+            world_y = ((height - y) - 0.5) * self.map_resolution + self.map_origin_y
 
             pose.pose.position.x = float(world_x)
             pose.pose.position.y = float(world_y)
@@ -97,6 +126,7 @@ class PathVisualizer(Node):
 
             path_msg.poses.append(pose)
 
+        self.get_logger().info(f"Start point{path_msg.poses[0].pose.position.x} es {path_msg.poses[0].pose.position.y}")
         self.path_pub.publish(path_msg)
 
         # MARKER 
@@ -119,8 +149,8 @@ class PathVisualizer(Node):
         for x, y in self.points:
             p = Point()
 
-            p.x = x * self.map_resolution + self.map_origin_x
-            p.y = (height - y) * self.map_resolution + self.map_origin_y
+            p.x = (x + 0.5) * self.map_resolution + self.map_origin_x
+            p.y = ((height - y) - 0.5) * self.map_resolution + self.map_origin_y
             p.z = 0.0
 
             marker.points.append(p)
@@ -129,6 +159,14 @@ class PathVisualizer(Node):
 
         self.get_logger().info("Path published")
 
+    # Send one planning request when the action server is ready
+    def try_send_goal(self):
+        if not self._action_client.server_is_ready():
+            return
+        self.goal_timer.cancel()
+        self.send_goal()
+
+    # Build and send the coverage planning request
     def send_goal(self):
         goal_msg = Coverage.Goal()
 
@@ -145,14 +183,14 @@ class PathVisualizer(Node):
         goal_msg.map_path = map_path
         goal_msg.robot_size = int(self.robot_size)
         goal_msg.threshold = float(self.threshold)
+        goal_msg.angle_degrees = float(self.angle_degrees)
 
         self.get_logger().info(f"MAP USED: {map_path}")
 
-        self._action_client.wait_for_server()
-
         self._send_goal_future = self._action_client.send_goal_async(goal_msg)
         self._send_goal_future.add_done_callback(self.goal_response_callback)
-    
+
+    # Request the result if the server accepts the goal
     def goal_response_callback(self, future):
         goal_handle = future.result()
 
@@ -165,10 +203,23 @@ class PathVisualizer(Node):
         self._get_result_future = goal_handle.get_result_async()
         self._get_result_future.add_done_callback(self.get_result_callback)
 
+    # Validate the planning result and store the coordinates as point pairs
     def get_result_callback(self, future):
-        result = future.result().result
+        response = future.result()
+
+        if response.status != GoalStatus.STATUS_SUCCEEDED:
+            self.points = []
+            self.get_logger().error("Coverage planning did not succeed.")
+            return
+
+        result = response.result
 
         raw = result.path
+
+        if len(raw) % 2 != 0:
+            self.points = []
+            self.get_logger().error("Invalid path: an even number of coordinates is required.")
+            return
 
         self.points = []
 
@@ -184,6 +235,11 @@ class PathVisualizer(Node):
 def main():
     rclpy.init()
     node = PathVisualizer()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.try_shutdown()

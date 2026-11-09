@@ -1,0 +1,226 @@
+
+    <sdf version="1.10">
+        <world name="generated_map">
+        <light name="sun" type="directional">
+            <pose>0 0 10 0 0 0</pose>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <direction>-0.5 0.1 -0.9</direction>
+        </light>
+        
+      <model name="obstacle_0">
+        <static>true</static>
+        <pose>6.775 13.275 0.5 0 0 0</pose>
+        <link name="obstacle_0_test">
+          <visual name="obstacle_0_visualization">
+            <geometry>
+                <box>
+                <size>12.850000000000001 0.05 1</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.5 0.5 0.5 1</ambient>
+                <diffuse>0.5 0.5 0.5 1</diffuse>
+            </material>
+        </visual>
+
+        <collision name="obstacle_0_collision">
+        <geometry>
+            <box>
+            <size>12.850000000000001 0.05 1</size>
+            </box>
+        </geometry>
+        </collision>
+       </link>
+      </model>
+    
+
+      <model name="obstacle_1">
+        <static>true</static>
+        <pose>5.675000000000001 10.950000000000001 0.5 0 0 0</pose>
+        <link name="obstacle_1_test">
+          <visual name="obstacle_1_visualization">
+            <geometry>
+                <box>
+                <size>4.05 0.9 1</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.5 0.5 0.5 1</ambient>
+                <diffuse>0.5 0.5 0.5 1</diffuse>
+            </material>
+        </visual>
+
+        <collision name="obstacle_1_collision">
+        <geometry>
+            <box>
+            <size>4.05 0.9 1</size>
+            </box>
+        </geometry>
+        </collision>
+       </link>
+      </model>
+    
+
+      <model name="obstacle_2">
+        <static>true</static>
+        <pose>9.75 6.95 0.5 0 0 0</pose>
+        <link name="obstacle_2_test">
+          <visual name="obstacle_2_visualization">
+            <geometry>
+                <box>
+                <size>1.0 4.0 1</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.5 0.5 0.5 1</ambient>
+                <diffuse>0.5 0.5 0.5 1</diffuse>
+            </material>
+        </visual>
+
+        <collision name="obstacle_2_collision">
+        <geometry>
+            <box>
+            <size>1.0 4.0 1</size>
+            </box>
+        </geometry>
+        </collision>
+       </link>
+      </model>
+    
+
+      <model name="obstacle_3">
+        <static>true</static>
+        <pose>3.9000000000000004 5.575 0.5 0 0 0</pose>
+        <link name="obstacle_3_test">
+          <visual name="obstacle_3_visualization">
+            <geometry>
+                <box>
+                <size>3.0 3.5500000000000003 1</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.5 0.5 0.5 1</ambient>
+                <diffuse>0.5 0.5 0.5 1</diffuse>
+            </material>
+        </visual>
+
+        <collision name="obstacle_3_collision">
+        <geometry>
+            <box>
+            <size>3.0 3.5500000000000003 1</size>
+            </box>
+        </geometry>
+        </collision>
+       </link>
+      </model>
+    
+
+      <model name="obstacle_4">
+        <static>true</static>
+        <pose>13.175 6.775 0.5 0 0 0</pose>
+        <link name="obstacle_4_test">
+          <visual name="obstacle_4_visualization">
+            <geometry>
+                <box>
+                <size>0.05 12.950000000000001 1</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.5 0.5 0.5 1</ambient>
+                <diffuse>0.5 0.5 0.5 1</diffuse>
+            </material>
+        </visual>
+
+        <collision name="obstacle_4_collision">
+        <geometry>
+            <box>
+            <size>0.05 12.950000000000001 1</size>
+            </box>
+        </geometry>
+        </collision>
+       </link>
+      </model>
+    
+
+      <model name="obstacle_5">
+        <static>true</static>
+        <pose>0.375 6.775 0.5 0 0 0</pose>
+        <link name="obstacle_5_test">
+          <visual name="obstacle_5_visualization">
+            <geometry>
+                <box>
+                <size>0.05 12.950000000000001 1</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.5 0.5 0.5 1</ambient>
+                <diffuse>0.5 0.5 0.5 1</diffuse>
+            </material>
+        </visual>
+
+        <collision name="obstacle_5_collision">
+        <geometry>
+            <box>
+            <size>0.05 12.950000000000001 1</size>
+            </box>
+        </geometry>
+        </collision>
+       </link>
+      </model>
+    
+
+      <model name="obstacle_6">
+        <static>true</static>
+        <pose>6.775 0.275 0.5 0 0 0</pose>
+        <link name="obstacle_6_test">
+          <visual name="obstacle_6_visualization">
+            <geometry>
+                <box>
+                <size>12.850000000000001 0.05 1</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.5 0.5 0.5 1</ambient>
+                <diffuse>0.5 0.5 0.5 1</diffuse>
+            </material>
+        </visual>
+
+        <collision name="obstacle_6_collision">
+        <geometry>
+            <box>
+            <size>12.850000000000001 0.05 1</size>
+            </box>
+        </geometry>
+        </collision>
+       </link>
+      </model>
+    
+
+      <model name="ground">
+        <static>true</static>
+        <pose>6.825 6.875 -0.1 0 0 0</pose>
+        <link name="ground_test">
+          <visual name="ground_visualization">
+            <geometry>
+                <box>
+                <size>13.65 13.75 0.2</size>
+                </box>
+            </geometry>
+            <material>
+                <ambient>0.5 0.5 0.5 1</ambient>
+                <diffuse>0.5 0.5 0.5 1</diffuse>
+            </material>
+        </visual>
+
+        <collision name="ground_collision">
+        <geometry>
+            <box>
+            <size>13.65 13.75 0.2</size>
+            </box>
+        </geometry>
+        </collision>
+       </link>
+      </model>
+    
+        </world>
+    </sdf>

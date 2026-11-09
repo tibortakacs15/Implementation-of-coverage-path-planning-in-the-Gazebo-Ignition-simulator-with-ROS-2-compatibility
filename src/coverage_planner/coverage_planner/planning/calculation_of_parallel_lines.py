@@ -3,56 +3,47 @@ import math
 
 # calculation_of_parallel_lines.py
 
-
 def draw_parallel_lines_with_angle(image, min_max_x_y_coord, angle_degrees, robot_size, scale_factor):
-    height, width = image.shape[:2]
     spacing = robot_size
 
+    if spacing <= 0:
+        raise ValueError("Line spacing must be greater than zero.")
+
+    if scale_factor < 1:
+        raise ValueError("Scale factor must be at least 1.")
     # Angle degree to radian
+    angle_degrees = angle_degrees % 360
     angle_radians = math.radians(angle_degrees)
     
-    # Special cases for 0°, 90°, 180°, 270°
-    if angle_degrees == 0:
-        offset_x, offset_y = 0, spacing
-    elif angle_degrees == 90:
-        offset_x, offset_y = spacing, 0
-    elif angle_degrees == 180:
-        offset_x, offset_y = 0, -spacing
-    elif angle_degrees == 270:
-        offset_x, offset_y = -spacing, 0
-    else:
-        offset_x = spacing * math.sin(angle_radians)
-        offset_y = spacing * math.cos(angle_radians)
+    offset_x = spacing * math.sin(angle_radians)
+    offset_y = spacing * math.cos(angle_radians)
     
-    # Calculate baseline start and end points
-    if angle_degrees == 0:
-        start_x, start_y = 0, height
-        end_x, end_y = width, height
-    elif angle_degrees == 90:
-        start_x, start_y = 0, 0
-        end_x, end_y = 0, height
-    elif angle_degrees == 180:
-        start_x, start_y = width, 0
-        end_x, end_y = 0, 0
-    elif angle_degrees == 270:
-        start_x, start_y = width, height
-        end_x, end_y = width, 0
-    else:
-        start_x, start_y = 0, height
-        end_x = width
-        end_y = height - width * math.tan(angle_radians)
-    
-    # Apply scaling
+    # Calculate baseline within the expanded bounds
+    margin = 2
+    x_min, y_min, x_max, y_max = min_max_x_y_coord
 
-    center_x = (start_x + end_x) / 2 
-    center_y = (start_y + end_y) / 2
-    start_x = center_x + (start_x - center_x) * scale_factor
-    start_y = center_y + (start_y - center_y) * scale_factor
-    end_x = center_x + (end_x - center_x) * scale_factor
-    end_y = center_y + (end_y - center_y) * scale_factor
+    x_min -= margin
+    y_min -= margin
+    x_max += margin
+    y_max += margin
+
+    center_x = (x_min + x_max) / 2
+    center_y = (y_min + y_max) / 2
+
+    direction_x = math.cos(angle_radians)
+    direction_y = -math.sin(angle_radians)
+
+    diagonal = math.hypot(x_max - x_min, y_max - y_min)
+
+    half_length = diagonal / 2 * scale_factor
+
+    start_x = center_x - direction_x * half_length
+    start_y = center_y - direction_y * half_length
+    end_x = center_x + direction_x * half_length
+    end_y = center_y + direction_y * half_length
     
-    # Generate lines
-    num_lines = max(width, height) // (spacing // 2)
+    # Generate parallel lines
+    num_lines = math.ceil((diagonal / 2) / spacing)
     lines = []
     for i in range(-num_lines, num_lines + 1):
         line_start_x = start_x + i * offset_x
@@ -60,7 +51,7 @@ def draw_parallel_lines_with_angle(image, min_max_x_y_coord, angle_degrees, robo
         line_end_x = end_x + i * offset_x
         line_end_y = end_y + i * offset_y
         
-        clipped_line = liang_barsky_clip(line_start_x, line_start_y, line_end_x, line_end_y, min_max_x_y_coord)
+        clipped_line = liang_barsky_clip(line_start_x, line_start_y, line_end_x, line_end_y, min_max_x_y_coord, margin=margin)
         if clipped_line:
             lines.append([
                 np.array([round(clipped_line[0]), round(clipped_line[1])]),
@@ -71,14 +62,14 @@ def draw_parallel_lines_with_angle(image, min_max_x_y_coord, angle_degrees, robo
 
 # Keeps the value within the allowed range
 def clamp(value, min_value, max_value):
-    return max(min(value, max_value), min_value, )
+    return max(min(value, max_value), min_value)
 
 # Liang-Barsky algorithm for cutting lines within an image frame.
-def liang_barsky_clip(x1, y1, x2, y2, min_max_x_y_coord):
-    x_min = min_max_x_y_coord[0] - 2
-    y_min  = min_max_x_y_coord[1] - 2
-    x_max = min_max_x_y_coord[2] + 2
-    y_max = min_max_x_y_coord[3] + 2
+def liang_barsky_clip(x1, y1, x2, y2, min_max_x_y_coord, margin=2):
+    x_min = min_max_x_y_coord[0] - margin
+    y_min  = min_max_x_y_coord[1] - margin
+    x_max = min_max_x_y_coord[2] + margin
+    y_max = min_max_x_y_coord[3] + margin
     
     def clip(p, q, t0, t1):
         if p == 0:  # With parallel edge
@@ -114,7 +105,7 @@ def liang_barsky_clip(x1, y1, x2, y2, min_max_x_y_coord):
     new_x2 = x1 + t1 * dx
     new_y2 = y1 + t1 * dy
 
-    return round(new_x1), round(new_y1), round(new_x2), round(new_y2)
+    return new_x1, new_y1, new_x2, new_y2
 
 # Bresenham's algorithms 
 def bresenham(x1, y1, x2, y2):

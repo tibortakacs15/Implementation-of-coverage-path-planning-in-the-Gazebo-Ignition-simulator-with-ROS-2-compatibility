@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from coverage_planner.planning.calculation_of_intersection_points import calculate_distance
 
+# calculate_of_coverage.py
 
 def calculating_route_distance(visited_points):
     route_distance = 0.0
@@ -97,7 +98,7 @@ def calculate_coverage(shapes, visited_points, robot_size, save_path=None):
     dilated = binary_dilation(grid == 2, structure=structure)
 
     # Calculating the area covered
-    covered_area = np.sum(dilated & (original_grid == 1)) + np.sum(grid == 2)
+    covered_area = np.sum(dilated & (original_grid == 1))
     total_area = np.sum(original_grid == 1)
 
     if total_area == 0:

@@ -1,3 +1,4 @@
+import os
 from setuptools import setup, find_packages
 
 package_name = 'coverage_planner'
@@ -10,6 +11,13 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (
+            os.path.join('share', package_name, 'launch'),
+            [
+                'launch/coverage_visualization.launch.py',
+                'launch/coverage_simulation.launch.py',
+            ],
+        ),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -21,6 +29,8 @@ setup(
         'console_scripts': [
             'coverage_path_visualizer = coverage_planner.visualization.path_visualizer:main',
             'coverage_action_server = coverage_planner.action_server.server:main',
+            'coverage_path_follower = coverage_planner.path_follower:main',
+            'coverage_spawn_from_path = coverage_planner.spawn_from_path:main'
         ],
     },
 )

@@ -1,0 +1,5 @@
+map_name: png_file/Map1.png
+map_yaml: maps/yaml_file/Map1.yaml
+robot_size: 19
+angle_degrees: 5.0
+start_follower: false

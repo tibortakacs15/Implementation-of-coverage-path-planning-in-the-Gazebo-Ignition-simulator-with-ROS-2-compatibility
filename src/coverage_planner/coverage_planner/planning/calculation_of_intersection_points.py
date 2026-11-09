@@ -2,30 +2,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-from coverage_planner.planning.calculation_of_parallel_lines import bresenham
-from coverage_planner.planning.save_map_and_obstacle_boundaries import calculate_distance
+from .calculation_of_parallel_lines import bresenham
+from .save_map_and_obstacle_boundaries import calculate_distance
 
-# calculate_of_intersection_points.py
+# calculation_of_intersection_points.py
 
-
-#  The shape points located between parallel lines
+# Collect boundary edges whose Y range overlaps each sweep line's Y range
 def edges_of_the_shapes(lines, shapes):
-    edge_coordinates  = []
+    edge_coordinates = []
+
     for line in lines:
-        edge = []
-        end, start = line[-1][1], line[0][1] # paralell lines start and end points
-        if start > end:
-            start, end = end, start
+        y_min = min(line[0][1], line[-1][1])
+        y_max = max(line[0][1], line[-1][1])
+        edges = []
+
         for shape in shapes:
-            condition = (shape[:, 1] >= start) & (shape[:, 1] <= end)  
-            result = shape[condition]
-            if len(result) > 0:
-                edge.append(result)
-        edge_coordinates.append(edge)
+            for i in range(len(shape) - 1):
+                start = shape[i]
+                end = shape[i + 1]
+
+                edge_y_min = min(start[1], end[1])
+                edge_y_max = max(start[1], end[1])
+
+                if edge_y_max >= y_min and edge_y_min <= y_max:
+                    edges.append(np.array([start, end]))
+
+        edge_coordinates.append(edges)
+
     return edge_coordinates
 
-
+# Find where the sweep lines intersect the boundary edges
 def calculate_intersection_points(edge_coordinates, lines, angle_degrees):
+    angle_degrees = angle_degrees % 360
     intersection_points = [set() for _ in range(len(lines))]
     for count, (edge_c, line) in enumerate(zip(edge_coordinates, lines)):
         if len(edge_c) == 0 or len(line) < 2:
@@ -43,14 +51,20 @@ def calculate_intersection_points(edge_coordinates, lines, angle_degrees):
                             else:
                                 r_ip = (math.ceil(ip[0]), math.floor(ip[1]))
                             intersection_points[count].add(r_ip)  # Add to set
-                        elif len(ip) == 4:  # Overlapping sections
-                            if angle_degrees >= 0 and angle_degrees < 90 or angle_degrees >= 180 and angle_degrees < 270:
-                                r_ip = (math.floor(ip[0]), math.floor(ip[1]))
-                            else:
-                                r_ip = (math.ceil(ip[0]), math.floor(ip[1]))
-                            for i in range(0, len(r_ip) - 1, 2):
-                                intersection_points[count].add((r_ip[i], r_ip[i + 1]))  # Add to set
+                        elif len(ip) == 4:
+                            for i in range(0, len(ip), 2):
+                                x = ip[i]
+                                y = ip[i + 1]
 
+                                if (
+                                    0 <= angle_degrees < 90
+                                    or 180 <= angle_degrees < 270
+                                ):
+                                    rounded_point = (math.floor(x), math.floor(y))
+                                else:
+                                    rounded_point = (math.ceil(x), math.floor(y))
+
+                                intersection_points[count].add(rounded_point)
     # set to list conversion
     intersection_points = [list(ips) for ips in intersection_points]
     if angle_degrees >= 0 and angle_degrees < 90:
@@ -77,34 +91,96 @@ def find_intersection_of_segments(segment1_f, segment1_e, segment2_f, segment2_e
     dx1, dy1 = x2 - x1, y2 - y1
     dx2, dy2 = x4 - x3, y4 - y3
 
+    # Squared segment lengths
+    length1_squared = dx1 * dx1 + dy1 * dy1
+    length2_squared = dx2 * dx2 + dy2 * dy2
+
+    epsilon = 1e-6  # Adjusted tolerance limit
+    if length1_squared == 0 and length2_squared == 0:
+        distance = math.hypot(x3 - x1, y3 - y1)
+
+        if distance <= epsilon:
+            return (x1, y1)
+
+        return None
+
+    if length1_squared == 0:
+        parameter = (
+            (x1 - x3) * dx2 + (y1 - y3) * dy2
+        ) / length2_squared
+
+        parameter = max(0.0, min(1.0, parameter))
+
+        closest_x = x3 + parameter * dx2
+        closest_y = y3 + parameter * dy2
+
+        distance = math.hypot(x1 - closest_x, y1 - closest_y)
+
+        if distance <= epsilon:
+            return (x1, y1)
+
+        return None
+
+    if length2_squared == 0:
+        parameter = (
+            (x3 - x1) * dx1 + (y3 - y1) * dy1
+        ) / length1_squared
+
+        parameter = max(0.0, min(1.0, parameter))
+
+        closest_x = x1 + parameter * dx1
+        closest_y = y1 + parameter * dy1
+
+        distance = math.hypot(x3 - closest_x, y3 - closest_y)
+
+        if distance <= epsilon:
+            return (x3, y3)
+
+        return None
     # Solving a system of linear equations according to Cramer's rule
     denominator = dx1 * dy2 - dy1 * dx2  # Determinant
 
-    # If denominator is 0, the segments are parallel or collinear
-    if abs(denominator) < 1e-6:  # Increased tolerance for parallel segments
-        # Check for collinearity
-        collinear_check = (y2 - y1) * (x3 - x1) == (x2 - x1) * (y3 - y1)
-        
-        if collinear_check:
-            # Find overlap in the x and y ranges with a slightly higher tolerance
-            overlap_x1 = max(min(x1, x2), min(x3, x4))
-            overlap_x2 = min(max(x1, x2), max(x3, x4))
-            overlap_y1 = max(min(y1, y2), min(y3, y4))
-            overlap_y2 = min(max(y1, y2), max(y3, y4))
-            if overlap_x1 <= overlap_x2 and overlap_y1 <= overlap_y2:  # Check if there is a valid overlap
-                # Return the overlapping segment
-                return (overlap_x1, overlap_y1, overlap_x2, overlap_y2)
-        return None  # Parallel, no intersection
+    if abs(denominator) < epsilon:
+        # Check whether both segments lie on the same line
+        cross = (x3 - x1) * dy1 - (y3 - y1) * dx1
+
+        if abs(cross) > epsilon * math.sqrt(length1_squared):
+            return None
+
+        # Positions of the second segment's endpoints along the first segment
+        t3 = (
+            (x3 - x1) * dx1 + (y3 - y1) * dy1
+        ) / length1_squared
+
+        t4 = (
+            (x4 - x1) * dx1 + (y4 - y1) * dy1
+        ) / length1_squared
+
+        # Intersection with the first segment's [0, 1] interval
+        overlap_start = max(0.0, min(t3, t4))
+        overlap_end = min(1.0, max(t3, t4))
+
+        if overlap_start > overlap_end:
+            return None
+
+        start_x = x1 + overlap_start * dx1
+        start_y = y1 + overlap_start * dy1
+        end_x = x1 + overlap_end * dx1
+        end_y = y1 + overlap_end * dy1
+
+        if math.hypot(end_x - start_x, end_y - start_y) <= epsilon:
+            return (start_x, start_y)
+
+        return (start_x, start_y, end_x, end_y)
     
-    # According to Cramer's rule
+    # Use Cramer's rule to find the intersection parameters
     numerator_t = (x3 - x1) * dy2 - (y3 - y1) * dx2
     numerator_u = (x3 - x1) * dy1 - (y3 - y1) * dx1
     
     t = numerator_t / denominator
     u = numerator_u / denominator
 
-    # Check if the intersection point is within both segments (0 <= t, u <= 1) with adjusted epsilon
-    epsilon = 1e-6  # Adjusted tolerance limit
+    # Check if the intersection point is within both segments (0 <= t, u <= 1) with adjusted epsilon  
     if -epsilon <= t <= 1 + epsilon and -epsilon <= u <= 1 + epsilon:
         # The coordinate of the point of intersection
         intersection_x = x1 + t * dx1
@@ -146,12 +222,20 @@ def selecting_good_lines(intersection_points, b_lines, robot_size, n_internal_co
                         if in_obstacle.size != 0 or in_outside.size != 0:
                             line_is_good = False
                             break
-                    if line_is_good: 
-                        for ll in range(len(n_line)):
-                            in_coordinate = np.where((n_coordinate_points == n_line[ll]).all(axis=1))[0]
-                            if in_coordinate.size == 0:
-                                finally_b_lines[count].append(n_line)
+                    if line_is_good:
+                        # Intersection endpoints may lie on black boundary pixels
+                        # Interior points must not cross a black boundary
+                        for point in n_line[1:-1]:
+                            on_boundary = np.any(
+                                np.all(n_coordinate_points == point, axis=1)
+                            )
+
+                            if on_boundary:
+                                line_is_good = False
                                 break
+
+                        if line_is_good:
+                            finally_b_lines[count].append(n_line)
     return finally_b_lines
 
 # Draw lines in map
@@ -163,7 +247,7 @@ def draw_lines(points, color):
             for p in range(0,len(pt) - 1, 2):
                 plt.plot((pt[p][0], pt[p + 1][0]), (pt[p][1], pt[p + 1][1]), color=color, linewidth=1)
 
-# Calculate list depth
+# Return the maximum nesting depth of the list
 def get_list_depth(lst, depth=0):
     if isinstance(lst, list):
         return max(get_list_depth(item, depth + 1) for item in lst) if lst else depth
