@@ -1,39 +1,17 @@
-## ▶️ Run Instructions (ROS 2 Pipeline)
+## Running the simulation
 
-## BUILD
+With ROS 2 Jazzy installed, open a terminal and run:
+
 ```bash
-cd ~/coverage_planner_ws
-colcon build
-source install/setup.bash
+source /opt/ros/jazzy/setup.bash &&
+cd ~/coverage_planner_ws &&
+colcon build --symlink-install --packages-up-to coverage_planner &&
+source install/setup.bash &&
+ros2 launch coverage_planner coverage_simulation.launch.py
+```
 
-TERMINAL 1 – ACTION SERVER
-cd ~/coverage_planner_ws
-source install/setup.bash
+The launch file reads the settings from `initialization.txt` and automatically
+generates a Gazebo world for the selected map in the `world_sdf/` directory.
 
-ros2 run coverage_planner coverage_action_server
-
-TERMINAL 2 – PATH VISUALIZER (PARAMETER!)
-cd ~/coverage_planner_ws
-source install/setup.bash
-
-ros2 run coverage_planner coverage_path_visualizer \
---ros-args -p map_name:=living_room.png
-
-TERMINAL3 – MAP SERVER
-cd ~/coverage_planner_ws
-source install/setup.bash
-
-ros2 run nav2_map_server map_server \
---ros-args -p yaml_filename:=/home/takacs/coverage_planner_ws/maps/living_room.yaml
-
-TERMINAL 4 – LIFECYCLE
-cd ~/coverage_planner_ws source install/setup.bash
-
-ros2 lifecycle set /map_server configure
-
-ros2 lifecycle set /map_server activate
-
-TERMINAL 5 – RViz
-cd ~/coverage_planner_ws source
-install/setup.bash
-rviz2 
+To make the robot follow the planned route, set `start_follower: true` in
+`initialization.txt` before launching the simulation.
