@@ -14,7 +14,6 @@ setup(
         (
             os.path.join('share', package_name, 'launch'),
             [
-                'launch/coverage_visualization.launch.py',
                 'launch/coverage_simulation.launch.py',
             ],
         ),
